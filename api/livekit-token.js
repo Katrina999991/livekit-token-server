@@ -1,11 +1,22 @@
-const { AccessToken } = require("livekit-server-sdk");
+import { AccessToken } from "livekit-server-sdk";
 
-module.exports = async (req, res) => {
+export default async function handler(req, res) {
+  // CORS
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
+  res.setHeader("Access-Control-Allow-Headers", "Content-Type, Authorization");
+
+  // Preflight
+  if (req.method === "OPTIONS") {
+    return res.status(204).end();
+  }
+
+  // Only POST
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Method Not Allowed" });
+  }
+
   try {
-    if (req.method !== "POST") {
-      return res.status(405).json({ error: "Method not allowed" });
-    }
-
     const { roomName, userId, username } = req.body || {};
     if (!roomName || !userId) {
       return res.status(400).json({ error: "roomName and userId are required" });
@@ -19,7 +30,7 @@ module.exports = async (req, res) => {
 
     const at = new AccessToken(apiKey, apiSecret, {
       identity: String(userId),
-      name: username ? String(username) : undefined
+      name: username ? String(username) : undefined,
     });
 
     at.addGrant({
@@ -27,7 +38,7 @@ module.exports = async (req, res) => {
       room: String(roomName),
       canPublish: true,
       canSubscribe: true,
-      canPublishData: true
+      canPublishData: true,
     });
 
     const token = await at.toJwt();
@@ -35,4 +46,4 @@ module.exports = async (req, res) => {
   } catch (e) {
     return res.status(500).json({ error: e?.message || "Unknown error" });
   }
-};
+}
